@@ -33,6 +33,15 @@ class Scene1 extends Phaser.Scene {
         this.load.audio('countdownMusic', 'assets/drawFX.WAV');
         this.load.audio('fireMusic', 'assets/fireFX.WAV');
         this.load.audio('endMusic', 'assets/endFX.WAV');
+        this.load.audio('birdFX', 'assets/birdFX.mp3');
+        this.load.audio('tumbleweedFX', 'assets/tumbleweedFX.mp3');
+        this.load.image('guide', 'assets/how_to_play.png');
+        this.load.image('start', 'assets/start.png');
+        this.load.image('startH', 'assets/startH.png');
+        this.load.image('try', 'assets/try.png');
+        this.load.image('tryH', 'assets/tryH.png');
+        this.load.image('win', 'assets/win.png');
+        this.load.image('lose', 'assets/lose.png');
     }
 
     create() {
@@ -49,40 +58,66 @@ class Scene1 extends Phaser.Scene {
         this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2 - 200, "title")
             .setOrigin(0.5, 0.5)
             .setDisplaySize(600, 420);
+
+        this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2 + 335, "guide")
+            .setOrigin(0.5, 0.5)
+            .setDisplaySize(723, 175);
         
-        // 创建 HTML 按钮
-        let button = document.createElement("button");
-        button.innerText = "Let's Draw!";
-        button.style.position = "absolute";
-        button.style.top = "55%";
-        button.style.left = "50%";
-        button.style.transform = "translate(-50%, -5%)";
-        button.style.padding = "40px 65px";
-        button.style.fontSize = "18px";
-        button.style.cursor = "pointer";
-        button.style.backgroundColor = "#B80000";
-        button.style.color = "#ffffff";
-        button.style.border = "none";
-        button.style.borderRadius = "5px";
+        // 创建开始按钮
+        const startButton = this.add.image(this.cameras.main.width / 2 - 10, this.cameras.main.height / 2 + 100, "start")
+            .setOrigin(0.5, 0.5) 
+            .setDisplaySize(156, 62)
+            .setInteractive(); // 使按钮可交互
 
-        // 添加 hover 样式
-        button.addEventListener("mouseenter", () => {
-            button.style.backgroundColor = "#8B0000"; // 鼠标悬停时的颜色
-        });
-        button.addEventListener("mouseleave", () => {
-            button.style.backgroundColor = "#B80000"; // 恢复原始颜色
+        // 按钮悬停和离开效果
+        startButton.on("pointerover", () => {
+            startButton.setTexture("startH"); // 鼠标悬停时切换到悬停图片
+            this.game.canvas.style.cursor = "pointer";
         });
 
-        // 将按钮添加到 HTML 文档中
-        document.body.appendChild(button);
+        startButton.on("pointerout", () => {
+            startButton.setTexture("start"); // 鼠标离开时恢复默认图片
+            this.game.canvas.style.cursor = "default";
+        });
 
         // 按钮点击事件
-        button.addEventListener("click", () => {
-            // 切换到游戏场景
-            this.scene.start("playGame");
-
-            // 删除按钮
-            button.remove();
+        startButton.on("pointerdown", () => {
+            this.scene.start("playGame"); // 切换到游戏场景
         });
+
+        // // 创建 HTML 按钮
+        // let button = document.createElement("button");
+        // button.innerText = "Let's Draw!";
+        // button.style.position = "absolute";
+        // button.style.top = "55%";
+        // button.style.left = "50%";
+        // button.style.transform = "translate(-50%, -5%)";
+        // button.style.padding = "40px 65px";
+        // button.style.fontSize = "18px";
+        // button.style.cursor = "pointer";
+        // button.style.backgroundColor = "#B80000";
+        // button.style.color = "#ffffff";
+        // button.style.border = "none";
+        // button.style.borderRadius = "5px";
+
+        // // 添加 hover 样式
+        // button.addEventListener("mouseenter", () => {
+        //     button.style.backgroundColor = "#8B0000"; // 鼠标悬停时的颜色
+        // });
+        // button.addEventListener("mouseleave", () => {
+        //     button.style.backgroundColor = "#B80000"; // 恢复原始颜色
+        // });
+
+        // // 将按钮添加到 HTML 文档中
+        // document.body.appendChild(button);
+
+        // // 按钮点击事件
+        // button.addEventListener("click", () => {
+        //     // 切换到游戏场景
+        //     this.scene.start("playGame");
+
+        //     // 删除按钮
+        //     button.remove();
+        // });
     }
 }

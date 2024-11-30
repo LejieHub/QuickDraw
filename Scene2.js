@@ -27,6 +27,24 @@ class Scene2 extends Phaser.Scene{
 
     
     create(){
+        // 添加一个时间事件来定时生成鸟
+        this.time.addEvent({
+            delay: Phaser.Math.Between(1000, 10000), // 1-5秒随机生成一只鸟
+            callback: this.spawnBird,
+            callbackScope: this,
+            //loop: true
+        });
+
+        this.time.addEvent({
+            delay: Phaser.Math.Between(10000, 20000), // 3 到 10 秒之间随机生成一个滚滚草
+            callback: this.spawnTumbleweed, // 调用生成滚滚草的函数
+            callbackScope: this, // 设置作用域为当前场景
+            loop: true // 循环生成
+        });
+        
+        this.timer = 0; // 用于记录时间
+        this.timerEvent = null; // Phaser 定时事件对象
+        
         this.countdown = 14;
         // 隐藏鼠标光标
         this.input.manager.canvas.style.cursor = 'none';
@@ -38,7 +56,15 @@ class Scene2 extends Phaser.Scene{
         this.fireMusic = this.sound.add('fireMusic', {
             volume: 1, // 音量：0.0 ~ 1.0
         });
+
+        this.birdFX = this.sound.add('birdFX', {
+            volume: 1, // 音量：0.0 ~ 1.0
+        });
         
+        this.tumbleweedFX = this.sound.add('tumbleweedFX', {
+            volume: 1, // 音量：0.0 ~ 1.0
+        });
+
         this.countdownMusic.play();
 
         this.input.mouse.disableContextMenu();
@@ -116,6 +142,99 @@ class Scene2 extends Phaser.Scene{
         
     }
 
+
+    spawnTumbleweed() { 
+        const isFromLeft = Phaser.Math.Between(0, 1) === 0;
+        const startX = isFromLeft ? -50 : this.game.config.width + 50;
+        const targetX = isFromLeft ? this.game.config.width + 50 : -50;
+        const startY = Phaser.Math.Between(this.game.config.height - 100, this.game.config.height - 50);
+    
+        const tumbleweed = this.add.image(startX, startY, 'tumbleweed')
+            .setOrigin(0.5)
+            .setScale(0.1); // 初始缩放比例
+    
+        let previousRotation = 0;
+        let isTumbleweedDestroyed = false; // 追踪是否已经销毁
+    
+        // 滚动动画
+        this.tweens.add({
+            targets: tumbleweed,
+            x: targetX,
+            duration: Phaser.Math.Between(5000, 7000),
+            onUpdate: (tween, target) => {
+                const progress = tween.progress;
+                const bounce = Math.sin(progress * Math.PI * 4) * 20;
+                target.y = this.game.config.height - 50 - bounce; // 模拟弹跳
+            },
+            onComplete: () => {
+                tumbleweed.destroy();
+                isTumbleweedDestroyed = true; // 标记为销毁
+            }
+        });
+    
+        // 旋转动画，播放音效逻辑
+        this.tweens.add({
+            targets: tumbleweed,
+            angle: 360, // 旋转一圈
+            duration: 2000, // 每圈旋转时间
+            repeat: -1, // 无限循环
+            onUpdate: (tween, target) => {
+                if (isTumbleweedDestroyed) return; // 如果目标已经销毁，直接退出回调
+    
+                const currentRotation = target.angle;
+                if (Math.floor(currentRotation / 360) > Math.floor(previousRotation / 360)) {
+                    this.tumbleweedFX.play(); // 播放音效
+                }
+                previousRotation = currentRotation;
+            },
+        });
+    
+        // 缩放动画
+        this.tweens.add({
+            targets: tumbleweed,
+            scale: { from: 0.1, to: 0.2 },
+            duration: Phaser.Math.Between(5000, 7000),
+        });
+    }
+    
+    
+    
+
+    spawnBird() {
+        // 随机生成鸟的初始Y位置
+        this.birdFX.play();
+        const birdY = Phaser.Math.Between(50, 200);
+    
+        // 添加第一帧作为初始显示的鸟
+        const bird = this.add.sprite(-50, birdY, 'bird1').setScale(0.07);
+    
+        // 控制鸟的动画帧
+        const birdFrames = ['bird1', 'bird2', 'bird3', 'bird4'];
+        let currentFrame = 0;
+    
+        // 使用时间事件来切换图片
+        const animationTimer = this.time.addEvent({
+            delay: 225, // 每帧125ms
+            callback: () => {
+                currentFrame = (currentFrame + 1) % birdFrames.length; // 循环切换帧
+                bird.setTexture(birdFrames[currentFrame]);
+            },
+            callbackScope: this,
+            loop: true
+        });
+    
+        // 设置鸟的移动，从左到右
+        this.tweens.add({
+            targets: bird,
+            x: this.game.config.width + 50, // 移动到屏幕右侧外
+            duration: 10000, // 5秒完成移动
+            onComplete: () => {
+                bird.destroy(); // 超出屏幕后销毁
+                animationTimer.remove(false); // 停止动画切换
+            }
+        });
+    }
+
     updateCountdown() {
         this.countdown--;
 
@@ -129,9 +248,27 @@ class Scene2 extends Phaser.Scene{
 
     startGame() {
         // 设置为 marshal_idle2，并在 1 到 3 秒的随机时间后切换为 marshal_draw
-        this.marshal.setTexture("marshal_idle2");
         this.arrowChallengeActive = true; // 初始设置为激活
-        const delayForDraw = Phaser.Math.Between(0, 3000);
+
+        // 重置计时器
+        this.timer = 0;
+
+        // 开始计时器
+        this.timerEvent = this.time.addEvent({
+            delay: 1, // 每 1 毫秒更新一次
+            callback: () => {
+                this.timer++;
+            },
+            callbackScope: this,
+            loop: true, // 循环计时
+        });
+
+        const delayForReady = Phaser.Math.Between(100, 2000);
+        this.time.delayedCall(delayForReady, () => {
+            this.marshal.setTexture("marshal_idle2");
+        }, [], this);
+
+        const delayForDraw = Phaser.Math.Between(2000, 3000);
 
         this.time.delayedCall(delayForDraw, () => {
             this.marshal.setTexture("marshal_draw");
@@ -484,6 +621,8 @@ class Scene2 extends Phaser.Scene{
             this.inputTimer = null;
         }
         
+        
+
         this.player.setTexture('player_draw');
         this.player.setPosition(230, 595);
         this.hand.setVisible(true);
@@ -600,6 +739,17 @@ class Scene2 extends Phaser.Scene{
 
         this.reticle.setVisible(false);
 
+        // 停止计时器
+        if (this.timerEvent) {
+            this.timerEvent.remove(false);
+            this.timerEvent = null;
+        }
+        
+        // 保存时间
+        this.savedTime = this.timer;
+
+        console.log(`Time taken: ${this.savedTime} ms`);
+
         // 记录结束状态
         const result = 'marshal_hit';
 
@@ -615,7 +765,7 @@ class Scene2 extends Phaser.Scene{
             duration: 1000, // 动画持续时间 1 秒
             onComplete: () => {
                 marshal.setVisible(false); // 动画结束后隐藏 player
-                this.scene.start("endGame", { result });
+                this.scene.start("endGame", { result,time: this.savedTime || 0  });
             }
         });
     }
@@ -632,6 +782,17 @@ class Scene2 extends Phaser.Scene{
 
         this.reticle.setVisible(false);
 
+        // 停止计时器（如果尚未停止）
+        if (this.timerEvent) {
+            this.timerEvent.remove(false);
+            this.timerEvent = null;
+        }
+
+        // 保存时间
+        this.savedTime = this.timer;
+
+        console.log(`Time taken: ${this.savedTime} ms`);
+
         const result = 'player_hit';
         
         // 添加旋转、位移和缩小动画
@@ -646,7 +807,7 @@ class Scene2 extends Phaser.Scene{
             duration: 1000, // 动画持续时间 1 秒
             onComplete: () => {
                 player.setVisible(false); // 动画结束后隐藏 player
-                this.scene.start("endGame", { result });
+                this.scene.start("endGame", { result ,time: this.savedTime || 0 });
             }
         });
     }
